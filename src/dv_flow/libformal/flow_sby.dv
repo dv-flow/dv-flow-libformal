@@ -1,0 +1,17 @@
+
+package:
+  name: formal.sby
+
+  tasks:
+  - name: BMC
+    consumes:
+    - {filetype: systemVerilogSource }
+    - {filetype: verilogSource }
+    shell: pytask
+    run: dv_flow.libformal.sby_bmc.BMC
+    with:
+      top:
+        type: str
+      depth:
+        type: int
+        value: 20

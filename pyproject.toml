@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools-scm>=8"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dv-flow-libformal"
+version = "0.0.1"
+dependencies = [
+    "dv-flow-mgr",
+    "toposort",
+]
+authors = [
+    {name = "Matthew Ballance", email = "matt.ballance@gmail.com"},
+]
+description = "Provides dv-flow tasks for formal verification (skeleton)"
+license = {file = "LICENSE" }
+
+[project.entry-points."dv_flow.mgr"]
+libformal = "dv_flow.libformal.__ext__"
+
+[tool.setuptools]
+include-package-data = true
+package-dir = {"" = "src"}
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"dv_flow.libformal" = ["**/flow.dv"]
