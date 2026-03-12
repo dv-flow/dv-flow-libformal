@@ -13,7 +13,7 @@ authors = [
     {name = "Matthew Ballance", email = "matt.ballance@gmail.com"},
 ]
 description = "Provides dv-flow tasks for formal verification (skeleton)"
-license = {file = "LICENSE" }
+license = {file = "LICENSE"}
 
 [project.entry-points."dv_flow.mgr"]
 libformal = "dv_flow.libformal.__ext__"
@@ -25,4 +25,4 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.setuptools.package-data]
-"dv_flow.libformal" = ["**/flow.dv"]
+"dv_flow.libformal" = ["**/flow.dv", "**/flow_sby.dv", "**/*_flow.dv"]

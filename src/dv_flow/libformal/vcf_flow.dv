@@ -1,0 +1,73 @@
+# yaml-language-server: $schema=https://dv-flow.github.io/flow.dv.schema.json
+#
+# formal.vcf — Synopsys VC Formal (vc_static) integration
+#
+# Provides concrete Analyze and Run tasks that drive vlogan for
+# compilation and vc_static for formal property checking.
+#
+
+package:
+  name: formal.vcf
+  desc: Synopsys VC Formal (vc_static) integration for formal property verification
+
+  imports:
+  - name: formal
+
+  tasks:
+  - export: Analyze
+    uses: formal.Analyze
+    shell: pytask
+    run: dv_flow.libformal.vcf_analyze.Analyze
+    desc: Compile HDL + SVA sources with vlogan for VC Formal
+    doc: |
+      Compiles SystemVerilog/Verilog sources and SVA property files
+      using Synopsys vlogan. Produces a formalLib FileSet pointing
+      at the compiled work library.
+
+      Example:
+      ```yaml
+      - name: analyze
+        uses: formal.vcf.Analyze
+        needs: [rtl-src, prop-src]
+        with:
+          top: my_module
+      ```
+    with:
+      work_lib:
+        doc: Name of the work library
+        type: str
+        value: work
+
+  - export: Run
+    uses: formal.Run
+    shell: pytask
+    run: dv_flow.libformal.vcf_run.Run
+    desc: Run VC Formal (vc_static) proof session
+    doc: |
+      Runs vc_static on a previously compiled design to prove or
+      falsify SVA properties. Generates a TCL control script
+      automatically unless a custom script is provided.
+
+      Example:
+      ```yaml
+      - name: prove
+        uses: formal.vcf.Run
+        needs: [analyze]
+        with:
+          top: my_module
+          clock: clk
+          reset: rst
+          depth: 30
+      ```
+    with:
+      tcl_script:
+        doc: Path to custom TCL script (overrides auto-generated script)
+        type: str
+        value: ""
+      proofgrid:
+        doc: Enable proof-grid parallel execution
+        type: bool
+        value: false
+      proofgrid_args:
+        doc: Additional proofgrid arguments
+        type: list

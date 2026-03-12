@@ -8,4 +8,5 @@ def dvfm_packages():
     return {
         'formal': os.path.join(formal_dir, "flow.dv"),
         'formal.sby': os.path.join(formal_dir, "flow_sby.dv"),
+        'formal.vcf': os.path.join(formal_dir, "vcf_flow.dv"),
     }

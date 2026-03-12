@@ -1,5 +1,105 @@
-# DV-Flow package: formal (skeleton)
-# Tasks and types will be defined here in a future update.
+# yaml-language-server: $schema=https://dv-flow.github.io/flow.dv.schema.json
+#
+# formal — Tool-agnostic formal verification tasks
+#
+# Provides abstract Analyze and Run tasks. Tool-specific sub-packages
+# (formal.vcf, formal.sby, etc.) provide concrete implementations.
+#
 
 package:
   name: formal
+  desc: Formal verification package providing tasks for compiling and running formal proofs with various tools
+
+  tasks:
+  - export: Analyze
+    desc: Compile HDL + SVA sources for formal analysis
+    doc: |
+      Analyze compiles SystemVerilog/Verilog source files and SVA property
+      files into a form suitable for formal analysis. Each tool-specific
+      sub-package (e.g., formal.vcf, formal.sby) provides a concrete
+      implementation.
+
+      The task consumes source file FileSets from its dependencies and
+      produces a formalLib FileSet containing the compiled design.
+    consumes:
+    - filetype: systemVerilogSource
+    - filetype: verilogSource
+    - filetype: systemVerilogInclude
+    - filetype: verilogInclude
+    - filetype: verilogIncDir
+    passthrough: unused
+    with:
+      top:
+        doc: Top-level module name
+        type: str
+      args:
+        doc: Additional compiler arguments
+        type: list
+      incdirs:
+        doc: Include directories for compilation
+        type: list
+      defines:
+        doc: Preprocessor defines
+        type: list
+
+  - export: Run
+    desc: Execute formal analysis on a compiled design
+    doc: |
+      Run executes formal property checking on a previously compiled
+      design or directly on source files. It can consume either the
+      formalLib FileSet from Analyze or raw source FileSets.
+
+      Reset is applied as a pulse at the beginning of formal analysis
+      to establish a known initial state. Clock, reset polarity, proof
+      strategy, and depth are all configurable.
+
+      Proof strategies:
+        - bmc:   Bounded model checking only (find bugs, no full proof)
+        - prove: Full unbounded proof (BMC + induction or similar)
+        - all:   Prove assertions and evaluate cover properties
+
+      A custom script can override the auto-generated control flow.
+    consumes:
+    - filetype: formalLib
+    - filetype: verilogSource
+    - filetype: systemVerilogSource
+    uptodate: false
+    with:
+      top:
+        doc: Top-level module name
+        type: str
+      clock:
+        doc: "Clock signal name (e.g., clk)"
+        type: str
+        value: clk
+      reset:
+        doc: "Reset signal name (e.g., rst or rst_n)"
+        type: str
+        value: rst
+      reset_polarity:
+        doc: "Reset polarity: high (active-high) or low (active-low)"
+        type: str
+        value: high
+      reset_cycles:
+        doc: Number of clock cycles to hold reset before releasing
+        type: int
+        value: 1
+      depth:
+        doc: Proof depth for bounded model checking
+        type: int
+        value: 50
+      proof_mode:
+        doc: "Proof strategy: bmc (bounded only), prove (unbounded), all (prove + cover)"
+        type: str
+        value: all
+      timeout:
+        doc: Per-property timeout in seconds (0 = tool default)
+        type: int
+        value: 0
+      engine:
+        doc: Formal engine to use (tool-specific; empty = tool default)
+        type: str
+        value: ""
+      args:
+        doc: Additional tool arguments
+        type: list
