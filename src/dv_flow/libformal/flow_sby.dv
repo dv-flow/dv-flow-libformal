@@ -7,6 +7,10 @@ package:
     consumes:
     - {filetype: systemVerilogSource }
     - {filetype: verilogSource }
+    # A formal proof is a RUN, not a build artifact -- always re-execute, exactly
+    # like hdlsim.SimRun. A cached "PASS" must never stand in for an actual run
+    # after a source change. Input FileSets remain content-hashed as normal.
+    uptodate: false
     shell: pytask
     run: dv_flow.libformal.sby_bmc.BMC
     with:
