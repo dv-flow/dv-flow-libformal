@@ -19,3 +19,20 @@ package:
       depth:
         type: int
         value: 20
+
+  # Cover (reachability / non-vacuity): find a trace reaching every cover()
+  # statement within `depth`; FAILS if any cover is unreachable. Complements BMC,
+  # which proves asserts but ignores covers. Same inputs/params as BMC.
+  - name: Cover
+    consumes:
+    - {filetype: systemVerilogSource }
+    - {filetype: verilogSource }
+    uptodate: false
+    shell: pytask
+    run: dv_flow.libformal.sby_bmc.Cover
+    with:
+      top:
+        type: str
+      depth:
+        type: int
+        value: 20

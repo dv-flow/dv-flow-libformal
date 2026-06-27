@@ -3,7 +3,10 @@ from dv_flow.mgr import TaskDataInput, TaskDataOutput, TaskDataResult, TaskRunCt
 
 import os, shutil, asyncio
 
-async def BMC(ctxt : TaskRunCtxt, input : TaskDataInput) -> TaskDataResult:
+async def _run_sby(ctxt : TaskRunCtxt, input : TaskDataInput, mode : str) -> TaskDataResult:
+    """Shared SymbiYosys runner. `mode` selects the proof mode: 'bmc' (prove the
+    assert/assume properties up to `depth`) or 'cover' (find a trace reaching every
+    cover() statement within `depth`; FAILS if any cover is unreachable)."""
     # Gather SV/V sources, defines, include dirs
     sources = []
     incdirs = []
@@ -60,7 +63,7 @@ async def BMC(ctxt : TaskRunCtxt, input : TaskDataInput) -> TaskDataResult:
             except Exception:
                 pass
         fp.write('[options]\n')
-        fp.write('mode bmc\n')
+        fp.write(f'mode {mode}\n')
         fp.write(f'depth {depth}\n\n')
         fp.write('[engines]\n')
         fp.write('smtbmc boolector\n\n')
@@ -79,9 +82,21 @@ async def BMC(ctxt : TaskRunCtxt, input : TaskDataInput) -> TaskDataResult:
     status = await ctxt.exec(['sby', f'{top}.sby'], cwd=rundir, logfile=f'{top}.log')
     markers = []
     if status != 0:
-        markers.append({'severity':'error','msg':'sby failed; see log', 'logfile':f'{top}.log'})
+        markers.append({'severity':'error','msg':f'sby ({mode}) failed; see log', 'logfile':f'{top}.log'})
     else:
-        markers.append({'severity':'info','msg':'sby completed', 'logfile':f'{top}.log'})
+        markers.append({'severity':'info','msg':f'sby ({mode}) completed', 'logfile':f'{top}.log'})
 
     output = [FileSet(src=input.name, filetype='formalDir', basedir=rundir)]
     return TaskDataResult(status=status, output=output, changed=True, markers=markers)
+
+
+async def BMC(ctxt : TaskRunCtxt, input : TaskDataInput) -> TaskDataResult:
+    """Bounded model check: prove the assert/assume properties hold up to `depth`."""
+    return await _run_sby(ctxt, input, 'bmc')
+
+
+async def Cover(ctxt : TaskRunCtxt, input : TaskDataInput) -> TaskDataResult:
+    """Cover: find, within `depth`, a trace reaching every cover() statement. FAILS if
+    any cover is unreachable -- the standard non-vacuity / reachability check that
+    complements BMC (which checks asserts but ignores covers)."""
+    return await _run_sby(ctxt, input, 'cover')

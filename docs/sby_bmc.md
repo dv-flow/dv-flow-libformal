@@ -36,3 +36,29 @@ Specifying options to 'read_verilog':
 Remove the ${{rundir}}/<top> directory if it exists
 Run Symbiyosys like this: sby <top>.sby
 
+
+# formal.sby.Cover Task
+
+Companion to `BMC`, identical inputs/parameters (`top`, `depth`), but the Options
+section specifies `mode cover` instead of `mode bmc`. SymbiYosys then searches (up to
+`depth`) for a trace that reaches every `cover()` statement in the design and FAILS if
+any cover is unreachable. This is the reachability / non-vacuity check that complements
+BMC: `BMC` proves the `assert`/`assume` properties hold but ignores `cover`s, while
+`Cover` proves the `cover`s are reachable but ignores `assert`s. Run both for a result
+that is both correct and non-vacuous.
+
+```
+[options]
+mode cover
+depth 20
+
+[engines]
+smtbmc boolector
+
+[script]
+read_verilog -sv ...
+prep -top <top>
+```
+
+(Both tasks share the runner `dv_flow.libformal.sby_bmc._run_sby(mode=...)`.)
+
