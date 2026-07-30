@@ -6,7 +6,7 @@ package:
   - name: default-dev
     deps:
     - name: pytest-dfm
-      url: http://github.com/dv-flow/pytest-dfm.git
+      url: https://github.com/dv-flow/pytest-dfm.git
     - name: dv-flow-libhdlsim
       url: http://github.com/dv-flow/dv-flow-libhdlsim.git
     - name: pytest
