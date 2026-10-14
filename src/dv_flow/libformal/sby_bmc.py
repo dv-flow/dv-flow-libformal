@@ -90,6 +90,18 @@ async def _run_sby(ctxt : TaskRunCtxt, input : TaskDataInput, mode : str) -> Tas
     return TaskDataResult(status=status, output=output, changed=True, markers=markers)
 
 
+def _sby_verdict(workdir : str):
+    """The sby verdict from <workdir>/status ('PASS 0 0', 'FAIL ...',
+    'ERROR ...', 'UNKNOWN ...', 'TIMEOUT ...'); 'ERROR' when sby wrote none
+    (it never got as far as running an engine)."""
+    try:
+        with open(os.path.join(workdir, 'status')) as fp:
+            words = fp.read().split()
+        return words[0].upper() if words else 'ERROR'
+    except OSError:
+        return 'ERROR'
+
+
 async def BMC(ctxt : TaskRunCtxt, input : TaskDataInput) -> TaskDataResult:
     """Bounded model check: prove the assert/assume properties hold up to `depth`."""
     return await _run_sby(ctxt, input, 'bmc')
@@ -100,3 +112,57 @@ async def Cover(ctxt : TaskRunCtxt, input : TaskDataInput) -> TaskDataResult:
     any cover is unreachable -- the standard non-vacuity / reachability check that
     complements BMC (which checks asserts but ignores covers)."""
     return await _run_sby(ctxt, input, 'cover')
+
+
+_MODES = ('bmc', 'cover', 'prove')
+
+
+async def Case(ctxt : TaskRunCtxt, input : TaskDataInput) -> TaskDataResult:
+    """Run one SymbiYosys proof as a TEST CASE: the sby verdict becomes an
+    hdlsim.TestResult, and the task itself succeeds whatever the verdict, so
+    one failing proof never aborts a suite -- hdlsim.SimSuiteReport (or a
+    project's `tests`) is the gate, exactly as for a simulation case.
+
+    `mode` is the sby mode: bmc (asserts up to depth), cover (every cover()
+    reachable within depth -- the non-vacuity check) or prove (unbounded, by
+    k-induction). Only PASS passes; FAIL, UNKNOWN (an inconclusive proof),
+    TIMEOUT and ERROR do not.
+    """
+    import time
+    mode = (getattr(input.params, 'mode', '') or 'bmc').lower()
+    if mode not in _MODES:
+        return TaskDataResult(status=1, markers=[{'severity':'error',
+            'msg':"formal.sby.Case: mode '%s' is not one of %s" % (mode, ', '.join(_MODES))}])
+
+    t0 = time.time()
+    run = await _run_sby(ctxt, input, mode)
+    walltime = time.time() - t0
+
+    top = input.params.top
+    if isinstance(top, (list, tuple)):
+        top = top[0] if top else ''
+    verdict = _sby_verdict(os.path.join(input.rundir, top)) if top else 'ERROR'
+    passed = (verdict == 'PASS')
+    status = {'PASS':'pass', 'FAIL':'fail', 'TIMEOUT':'timeout'}.get(verdict, 'error')
+
+    name = getattr(input.params, 'name', '') or input.name
+    tr = ctxt.mkDataItem(
+        'hdlsim.TestResult',
+        testname=top or '', sim='sby', status=status, passed=passed,
+        run_status=run.status, errors=0 if passed else 1, warnings=0, fatals=0,
+        seed=0, walltime_s=walltime,
+        stats={'mode': mode, 'depth': int(getattr(input.params, 'depth', 0) or 0),
+               'verdict': verdict},
+        runinfo={}, artifacts=[])
+    tr.name = name
+    tr.src = name  # distinct per case -> no dedup when a report gathers cases
+
+    if not passed:
+        ctxt.info("Case '%s': sby %s on %s returned %s; see %s.log" % (
+            name, mode, top, verdict, top))
+
+    # A setup error (no top) already returned above; everything sby itself
+    # reports is a verdict, carried as data.
+    return TaskDataResult(status=0, changed=True, output=run.output + [tr],
+                          markers=[m for m in run.markers
+                                   if (m.get('severity') if isinstance(m, dict) else None) != 'error'])

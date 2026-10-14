@@ -2,6 +2,11 @@
 package:
   name: formal.sby
 
+  # hdlsim.TestResult is the verdict type hdlsim.SimSuiteReport (and so a
+  # project's `tests`) rolls up; Case emits it.
+  imports:
+  - name: hdlsim
+
   tasks:
   - name: BMC
     consumes:
@@ -33,6 +38,37 @@ package:
     with:
       top:
         type: str
+      depth:
+        type: int
+        value: 20
+
+
+  # Case: one proof as a TEST CASE -- the sby verdict becomes an
+  # hdlsim.TestResult and the task succeeds whatever the verdict, so it sits in
+  # a suite matrix under hdlsim.SimSuiteReport / a project's `tests` exactly
+  # like a simulation case. BMC and Cover above stay as they are: a failing
+  # proof fails the task.
+  - name: Case
+    consumes:
+    - {filetype: systemVerilogSource }
+    - {filetype: verilogSource }
+    uptodate: false
+    shell: pytask
+    run: dv_flow.libformal.sby_bmc.Case
+    produces:
+    - type: hdlsim.TestResult
+      name: "${{ name }}"
+    with:
+      name:
+        doc: Case name for the TestResult (defaults to the task name)
+        type: str
+        value: ""
+      top:
+        type: str
+      mode:
+        doc: "sby mode: bmc (asserts to depth), cover (every cover reachable), prove (unbounded, k-induction)"
+        type: str
+        value: bmc
       depth:
         type: int
         value: 20
