@@ -1,5 +1,6 @@
 """formal.sby.Case: one proof as a test case -- the sby verdict as an
-hdlsim.TestResult, and a task that succeeds whatever the verdict."""
+formal.FormalResult (a std.TestResult), and a task that succeeds whatever
+the verdict."""
 import os
 import shutil
 import asyncio
@@ -13,18 +14,18 @@ DATA = os.path.join(os.path.dirname(__file__), 'data', 'formal_case')
 
 def _run_case(tmpdir, top, mode):
     rundir = os.path.join(tmpdir, 'rundir')
-    rgy = PackageLoader().load_rgy(['std', 'hdlsim', 'formal.sby'])
+    rgy = PackageLoader().load_rgy(['std', 'formal', 'formal.sby'])
     builder = TaskGraphBuilder(rgy, rundir)
     files = builder.mkTaskNode('std.FileSet', name='files',
                                type='systemVerilogSource', base=DATA,
                                include='*.sv')
     case = builder.mkTaskNode('formal.sby.Case', name='case', top=top,
                               mode=mode, needs=[files])
-    # The builder lets the task create the hdlsim.TestResult data item.
+    # The builder lets the task create the formal.FormalResult data item.
     runner = TaskSetRunner(rundir, builder=builder)
     out = asyncio.run(runner.run(case))
-    trs = [o for o in out.output if getattr(o, 'type', '') == 'hdlsim.TestResult']
-    assert len(trs) == 1, 'a Case emits exactly one TestResult'
+    trs = [o for o in out.output if getattr(o, 'type', '') == 'formal.FormalResult']
+    assert len(trs) == 1, 'a Case emits exactly one FormalResult'
     return runner.status, trs[0]
 
 
@@ -43,7 +44,7 @@ def test_case_verdict(tmpdir, top, mode, status, passed):
     # a suite report decides the gate.
     assert run_status == 0
     assert (tr.status, tr.passed) == (status, passed)
-    assert tr.stats.get('mode') == mode
+    assert tr.attrs.get('mode') == mode
 
 
 def test_sby_verdict_reads_status_file(tmpdir):

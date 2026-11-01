@@ -42,11 +42,17 @@ package:
     uses: formal.Run
     shell: pytask
     run: dv_flow.libformal.vcf_run.Run
+    produces:
+    - type: std.FileSet
+      filetype: formalRunDir
+    - type: formal.FormalResult
     desc: Run VC Formal (vc_static) proof session
     doc: |
       Runs vc_static on a previously compiled design to prove or
       falsify SVA properties. Generates a TCL control script
-      automatically unless a custom script is provided.
+      automatically unless a custom script is provided. Emits a
+      `formal.FormalResult` with the proven / falsified / inconclusive /
+      covered / vacuous counts (fail on a falsified property).
 
       Example:
       ```yaml

@@ -72,6 +72,12 @@ def _generate_tcl(params, tcl_path, source_files):
 
 def _parse_results(log_path):
     """Parse VC Formal log for proof results and return markers."""
+    return _parse_counts(log_path)[1]
+
+
+def _parse_counts(log_path):
+    """(counts, markers) from a VC Formal log: counts of proven, falsified,
+    inconclusive, covered and vacuous properties."""
     proven = 0
     falsified = 0
     inconclusive = 0
@@ -79,7 +85,7 @@ def _parse_results(log_path):
     vacuous = 0
 
     if not os.path.isfile(log_path):
-        return []
+        return {}, []
 
     with open(log_path, 'r') as fp:
         for line in fp:
@@ -108,7 +114,45 @@ def _parse_results(log_path):
         markers.append({'severity': 'warning', 'msg': f'{inconclusive} properties inconclusive (bounded)'})
     if falsified > 0:
         markers.append({'severity': 'error', 'msg': f'{falsified} properties FALSIFIED'})
-    return markers
+    counts = dict(proven=proven, falsified=falsified, inconclusive=inconclusive,
+                  covered=covered, vacuous=vacuous)
+    return counts, markers
+
+
+def vcf_formal_result(ctxt, input, counts, run_status, log_path):
+    """The run's formal.FormalResult: fail on a falsified property, error when
+    vcf failed without one, else pass (inconclusive and vacuous properties
+    are counted, and warned about, but do not fail the run)."""
+    from dv_flow.mgr import FileSet
+    from dv_flow.mgr.results import api as R
+    fals = counts.get("falsified", 0)
+    if fals:
+        status, msg = "fail", "%d properties falsified" % fals
+    elif run_status:
+        status, msg = "error", "vcf exited with status %d" % run_status
+    else:
+        status, msg = "pass", ""
+    top = getattr(input.params, 'top', '') or ''
+    res = R.mk_result(ctxt, "formal.FormalResult", name=input.name.rsplit(".", 1)[-1],
+                      task=input.name, rundir=input.rundir, status=status, msg=msg,
+                      testname=top)
+    res.attrs = {"engine": "vcf", "mode": str(getattr(input.params, 'proof_mode', '') or 'all'),
+                 "top": top}
+    res.tool = {"name": "vcf"}
+    res.metrics = {"proven": R.metric(counts.get("proven", 0), name="proven"),
+                   "failed": R.metric(fals, name="failed"),
+                   "unknown": R.metric(counts.get("inconclusive", 0), name="unknown"),
+                   "covered": R.metric(counts.get("covered", 0), name="covered"),
+                   "vacuous": R.metric(counts.get("vacuous", 0), "", "lower", "Vacuous")}
+    res.checks = [R.check("assertions", "fail" if fals else "pass", "failed", "==", 0,
+                          value=fals),
+                  R.check("tool_exit", "error" if (run_status and not fals) else
+                          ("fail" if run_status else "pass"), msg="exit %d" % (run_status or 0))]
+    if os.path.isfile(log_path):
+        res.artifacts = [FileSet(filetype="vcfLog", basedir=os.path.dirname(log_path),
+                                 files=[os.path.basename(log_path)], attributes=["role=log"])]
+    R.finish(res)
+    return res
 
 
 async def Run(ctxt: TaskRunCtxt, input) -> TaskDataResult:
@@ -155,7 +199,7 @@ async def Run(ctxt: TaskRunCtxt, input) -> TaskDataResult:
     status = await ctxt.exec(cmd, logfile="vcf.log")
 
     log_path = os.path.join(input.rundir, 'vcf.log')
-    result_markers = _parse_results(log_path)
+    counts, result_markers = _parse_counts(log_path)
     markers.extend(result_markers)
 
     if status != 0 and not any(m.get('severity') == 'error' for m in markers):
@@ -166,6 +210,10 @@ async def Run(ctxt: TaskRunCtxt, input) -> TaskDataResult:
         filetype="formalRunDir",
         basedir=input.rundir,
     ))
+    try:
+        output.append(vcf_formal_result(ctxt, input, counts, status, log_path))
+    except Exception as e:
+        _log.warning("could not build the FormalResult: %s" % e)
 
     return TaskDataResult(
         status=status,

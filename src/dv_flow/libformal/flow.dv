@@ -103,3 +103,17 @@ package:
       args:
         doc: Additional tool arguments
         type: list
+
+  types:
+  - name: FormalResult
+    uses: std.TestResult
+    doc: |
+      One formal proof's verdict (a `std.TestResult`, so a `std.Result`):
+      `status` from the tool's verdict (pass, fail, timeout; error for an
+      inconclusive or crashed run), `msg` the first failed assertion or
+      unreached cover, and `checks` naming the rule that failed
+      (`assertions`, `covers`, `proof`). attrs: engine, mode, top, verdict.
+      metrics: depth (last step checked), proven, failed, unknown, covered,
+      unreached. Each failed property is a diagnostic with the log line
+      and the source line; counterexample and cover traces are `waves`
+      artifacts.

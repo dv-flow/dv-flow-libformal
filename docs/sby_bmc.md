@@ -62,3 +62,30 @@ prep -top <top>
 
 (Both tasks share the runner `dv_flow.libformal.sby_bmc._run_sby(mode=...)`.)
 
+
+# formal.sby.Case Task
+
+Runs one proof (`mode`: `bmc`, `cover` or `prove`; `top`, `depth`) as a **test
+case**. The sby verdict is data: the task succeeds whatever the verdict, and it
+emits a `formal.FormalResult`, which a `std.TestSuite` / `std.TestRunner` rolls
+up and the run record (`rundir/out/<run-id>/results.json`) shows like any other
+test.
+
+`formal.FormalResult` (`uses: std.TestResult`, so a `std.Result`):
+
+| field | content |
+|---|---|
+| `status` | `pass` (PASS), `fail` (FAIL), `timeout` (TIMEOUT), `error` (UNKNOWN -- an inconclusive proof -- or ERROR) |
+| `msg` | the first failed assertion (`assertion failed at counter.sv:14 in step 14`) or unreached cover |
+| `checks` | `assertions` (`failed == 0`; bmc/prove), `covers` (`unreached == 0`; cover), `proof` (why there is no clean verdict) |
+| `attrs` | `engine` (`smtbmc boolector`), `mode`, `top`, `verdict`, `depth_goal` |
+| `metrics` | `depth` (the last step checked), `failed`, `proven`, `unknown`, `covered`, `unreached`, `walltime_s` |
+| `diagnostics` | one per failed assertion / unreached cover: `loc` is the line in `<top>.log`, `src_loc` the property's source line |
+| `artifacts` | `<top>.log` (`role=log`) and each counterexample / cover trace (`role=waves`) |
+
+Properties are diagnostics rather than child results: a proof is one test case,
+and children would make the run record count its properties as tests.
+
+`formal.vcf.Run` emits a `formal.FormalResult` too, from the proven / falsified /
+inconclusive / covered / vacuous counts in `vcf.log` (`fail` on a falsified
+property, `error` when vcf fails without one).

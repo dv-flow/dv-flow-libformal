@@ -1,0 +1,15 @@
+SBY 14:22:10 [counter_ok] Copy 'counter_ok.sv' to 'counter_ok/src/counter_ok.sv'.
+SBY 14:22:10 [counter_ok] engine_0: smtbmc boolector
+SBY 14:22:10 [counter_ok] base: starting process "cd counter_ok/src; yosys -ql ../model/design.log ../model/design.ys"
+SBY 14:22:10 [counter_ok] base: finished (returncode=0)
+SBY 14:22:10 [counter_ok] engine_0: ##   0:00:00  Checking assumptions in step 0..
+SBY 14:22:10 [counter_ok] engine_0: ##   0:00:00  Checking assertions in step 0..
+SBY 14:22:11 [counter_ok] engine_0: ##   0:00:00  Checking assumptions in step 19..
+SBY 14:22:11 [counter_ok] engine_0: ##   0:00:00  Checking assertions in step 19..
+SBY 14:22:11 [counter_ok] engine_0: ##   0:00:00  Status: passed
+SBY 14:22:11 [counter_ok] engine_0: finished (returncode=0)
+SBY 14:22:11 [counter_ok] engine_0: Status returned by engine: pass
+SBY 14:22:11 [counter_ok] summary: Elapsed clock time [H:MM:SS (secs)]: 0:00:01 (1)
+SBY 14:22:11 [counter_ok] summary: engine_0 (smtbmc boolector) returned pass
+SBY 14:22:11 [counter_ok] summary: engine_0 did not produce any traces
+SBY 14:22:11 [counter_ok] DONE (PASS, rc=0)

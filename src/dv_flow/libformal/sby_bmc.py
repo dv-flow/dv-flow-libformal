@@ -118,10 +118,11 @@ _MODES = ('bmc', 'cover', 'prove')
 
 
 async def Case(ctxt : TaskRunCtxt, input : TaskDataInput) -> TaskDataResult:
-    """Run one SymbiYosys proof as a TEST CASE: the sby verdict becomes an
-    hdlsim.TestResult, and the task itself succeeds whatever the verdict, so
-    one failing proof never aborts a suite -- hdlsim.SimSuiteReport (or a
-    project's `tests`) is the gate, exactly as for a simulation case.
+    """Run one SymbiYosys proof as a TEST CASE: the sby verdict becomes a
+    formal.FormalResult (a std.TestResult; see formal_result.py), and the
+    task itself succeeds whatever the verdict, so one failing proof never
+    aborts a suite -- the suite's runner is the gate, exactly as for a
+    simulation case.
 
     `mode` is the sby mode: bmc (asserts up to depth), cover (every cover()
     reachable within depth -- the non-vacuity check) or prove (unbounded, by
@@ -146,15 +147,14 @@ async def Case(ctxt : TaskRunCtxt, input : TaskDataInput) -> TaskDataResult:
     status = {'PASS':'pass', 'FAIL':'fail', 'TIMEOUT':'timeout'}.get(verdict, 'error')
 
     name = getattr(input.params, 'name', '') or input.name
-    tr = ctxt.mkDataItem(
-        'hdlsim.TestResult',
-        testname=top or '', sim='sby', status=status, passed=passed,
-        run_status=run.status, errors=0 if passed else 1, warnings=0, fatals=0,
-        seed=0, walltime_s=walltime,
-        stats={'mode': mode, 'depth': int(getattr(input.params, 'depth', 0) or 0),
-               'verdict': verdict},
-        runinfo={}, artifacts=[])
-    tr.name = name
+    from dv_flow.libformal.formal_result import mk_formal_result
+    workdir = os.path.join(input.rundir, top) if top else input.rundir
+    tr = mk_formal_result(
+        ctxt, name=name, task=input.name, rundir=input.rundir, mode=mode,
+        top=top or '', verdict=verdict,
+        log_path=os.path.join(input.rundir, '%s.log' % top) if top else '',
+        workdir=workdir, depth_goal=int(getattr(input.params, 'depth', 0) or 0),
+        walltime_s=walltime)
     tr.src = name  # distinct per case -> no dedup when a report gathers cases
 
     if not passed:

@@ -1,0 +1,9 @@
+SBY 14:22:14 [counter_nocov] engine_0: smtbmc boolector
+SBY 14:22:14 [counter_nocov] engine_0: ##   0:00:00  Checking cover reachability in step 0..
+SBY 14:22:14 [counter_nocov] engine_0: ##   0:00:00  Reached cover statement at counter_nocov.sv:18.5-18.24 (_witness_.check_cover_counter_nocov_sv_18_1) in step 3.
+SBY 14:22:14 [counter_nocov] engine_0: ##   0:00:00  Writing trace to VCD file: engine_0/trace0.vcd
+SBY 14:22:14 [counter_nocov] engine_0: ##   0:00:00  Checking cover reachability in step 19..
+SBY 14:22:14 [counter_nocov] engine_0: ##   0:00:00  Unreached cover statement at counter_nocov.sv:20.5-20.30 (_witness_.check_cover_counter_nocov_sv_20_2).
+SBY 14:22:14 [counter_nocov] engine_0: ##   0:00:00  Status: failed
+SBY 14:22:14 [counter_nocov] summary: engine_0 (smtbmc boolector) returned FAIL
+SBY 14:22:14 [counter_nocov] DONE (FAIL, rc=2)

@@ -2,10 +2,10 @@
 package:
   name: formal.sby
 
-  # hdlsim.TestResult is the verdict type hdlsim.SimSuiteReport (and so a
-  # project's `tests`) rolls up; Case emits it.
+  # Case emits a formal.FormalResult (a std.TestResult), the verdict type
+  # std.TestSuite / std.TestRunner and the run record roll up.
   imports:
-  - name: hdlsim
+  - name: formal
 
   tasks:
   - name: BMC
@@ -43,10 +43,10 @@ package:
         value: 20
 
 
-  # Case: one proof as a TEST CASE -- the sby verdict becomes an
-  # hdlsim.TestResult and the task succeeds whatever the verdict, so it sits in
-  # a suite matrix under hdlsim.SimSuiteReport / a project's `tests` exactly
-  # like a simulation case. BMC and Cover above stay as they are: a failing
+  # Case: one proof as a TEST CASE -- the sby verdict becomes a
+  # formal.FormalResult and the task succeeds whatever the verdict, so it sits
+  # in a suite under std.TestSuite / a project's `tests` exactly like a
+  # simulation case. BMC and Cover above stay as they are: a failing
   # proof fails the task.
   - name: Case
     consumes:
@@ -56,7 +56,7 @@ package:
     shell: pytask
     run: dv_flow.libformal.sby_bmc.Case
     produces:
-    - type: hdlsim.TestResult
+    - type: formal.FormalResult
       name: "${{ name }}"
     with:
       name:
